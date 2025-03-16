@@ -1,8 +1,6 @@
 # python 3
 FROM ubuntu:jammy-20240227
 
-MAINTAINER K. Shankari (shankari@eecs.berkeley.edu)
-
 ADD https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem /etc/ssl/certs/
 
 WORKDIR /usr/src/app
@@ -40,7 +38,7 @@ ENV DB_HOST='db'
 ENV WEB_SERVER_HOST=0.0.0.0
 
 ENV LIVERELOAD_SRC=''
-ENV STUDY_CONFIG=''
+ENV STUDY_CONFIG='timeuse'
 RUN chmod u+x ./.docker/docker_start_script.sh
 
 EXPOSE 8080
