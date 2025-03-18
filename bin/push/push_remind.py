@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     STUDY_CONFIG = os.getenv('STUDY_CONFIG', "stage-study")
 
-    download_url = "https://raw.githubusercontent.com/e-mission/nrel-openpath-deploy-configs/main/configs/" + STUDY_CONFIG + ".nrel-op.json"
+    download_url = f"https://raw.githubusercontent.com/fourstep-dev/fourstep-configs/main/configs/test.{STUDY_CONFIG}.fourstep.json"
     logging.debug("About to download config from %s" % download_url)
     r = requests.get(download_url)
     if r.status_code != 200:
