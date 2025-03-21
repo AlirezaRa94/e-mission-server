@@ -289,7 +289,7 @@ def update_confirmed_and_composite(ts, confirmed_obj):
         composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.start_ts", confirmed_obj.data.start_ts)
         if composite_trip is not None:
             # copy over all the fields other than the end_confimed_place
-            EXCLUDED_FIELDS = ["end_confirmed_place", "start_ts", "end_ts", "start_loc", "end_loc"]
+            EXCLUDED_FIELDS = ["start_confirmed_place", "end_confirmed_place", "start_ts", "end_ts", "start_loc", "end_loc"]
             for k in confirmed_obj["data"].keys():
                 if k not in EXCLUDED_FIELDS:
                     composite_trip["data"][k] = confirmed_obj["data"][k]
@@ -298,9 +298,18 @@ def update_confirmed_and_composite(ts, confirmed_obj):
             logging.debug("No composite trip matching confirmed trip %s, nothing to update" % confirmed_obj["_id"])
 
     if confirmed_obj["metadata"]["key"] == esda.CONFIRMED_PLACE_KEY:
-        composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.end_ts", confirmed_obj['data']['enter_ts'])
-        if composite_trip is not None:
-            composite_trip["data"]["end_confirmed_place"] = confirmed_obj
-            estbt.BuiltinTimeSeries.update(ecwe.Entry(composite_trip))
+        previous_composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.end_ts", confirmed_obj['data']['enter_ts'])
+        if previous_composite_trip is not None:
+            previous_composite_trip["data"]["end_confirmed_place"] = confirmed_obj
+            estbt.BuiltinTimeSeries.update(ecwe.Entry(previous_composite_trip))
         else:
             logging.debug("No composite trip ends at place %s, nothing to update" % confirmed_obj["_id"])
+        
+        # If the place has an exit_ts, there might be a composite trip that starts there
+        if "exit_ts" in confirmed_obj["data"]:
+            next_composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.start_ts", confirmed_obj["data"]["exit_ts"])
+            if next_composite_trip is not None:
+                next_composite_trip["data"]["start_confirmed_place"] = confirmed_obj
+                estbt.BuiltinTimeSeries.update(ecwe.Entry(next_composite_trip))
+            else:
+                logging.debug("No composite trip starts at place %s, nothing to update" % confirmed_obj["_id"])
