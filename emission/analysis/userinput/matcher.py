@@ -278,7 +278,6 @@ def link_trip_end(confirmed_trip, confirmed_end_place):
 
 def update_confirmed_and_composite(ts, confirmed_obj):
     import emission.storage.timeseries.builtin_timeseries as estbt
-    import emission.core.get_database as edb
     estbt.BuiltinTimeSeries.update(confirmed_obj)
     # we update confirmed object in the pipeline, but they are no longer the terminal data structures
     # that we display. So when the confirmed objects change, we need to find the corresponding
@@ -286,7 +285,7 @@ def update_confirmed_and_composite(ts, confirmed_obj):
     # if we don't find a matching composite trip, we don't need to do anything
     # since it has not been created yet and will be created with updated values when we get to that stage
     if confirmed_obj["metadata"]["key"] in [esda.CONFIRMED_TRIP_KEY, esda.CONFIRMED_UNTRACKED_KEY]:
-        composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.start_ts", confirmed_obj.data.start_ts)
+        composite_trip = ts.get_entry_at_ts(esda.COMPOSITE_TRIP_KEY, "data.start_ts", confirmed_obj.data.start_ts)
         if composite_trip is not None:
             # copy over all the fields other than the end_confimed_place
             EXCLUDED_FIELDS = ["start_confirmed_place", "end_confirmed_place", "start_ts", "end_ts", "start_loc", "end_loc"]
@@ -298,8 +297,19 @@ def update_confirmed_and_composite(ts, confirmed_obj):
             logging.debug("No composite trip matching confirmed trip %s, nothing to update" % confirmed_obj["_id"])
 
     if confirmed_obj["metadata"]["key"] == esda.CONFIRMED_PLACE_KEY:
-        previous_composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.end_ts", confirmed_obj['data']['enter_ts'])
+        base_qeuery = {
+            "user_id": ts.user_id,
+            "metadata.key": esda.COMPOSITE_TRIP_KEY,
+        }
+        db = ts.get_timeseries_db(esda.COMPOSITE_TRIP_KEY)
+        
+        previous_composite_trip = db.find_one({
+            **base_qeuery,
+            "data.end_confirmed_place._id": confirmed_obj["_id"]
+        })
+        logging.debug(f"previous_composite_trip = {previous_composite_trip}")
         if previous_composite_trip is not None:
+            logging.debug("Updating previous composite trip ...")
             previous_composite_trip["data"]["end_confirmed_place"] = confirmed_obj
             estbt.BuiltinTimeSeries.update(ecwe.Entry(previous_composite_trip))
         else:
@@ -307,8 +317,14 @@ def update_confirmed_and_composite(ts, confirmed_obj):
         
         # If the place has an exit_ts, there might be a composite trip that starts there
         if "exit_ts" in confirmed_obj["data"]:
-            next_composite_trip = ts.get_entry_at_ts("analysis/composite_trip", "data.start_ts", confirmed_obj["data"]["exit_ts"])
+            logging.debug("Place has exit_ts, checking for composite trips that start there")
+            next_composite_trip = db.find_one({
+                **base_qeuery,
+                "data.start_confirmed_place._id": confirmed_obj["_id"]
+            })
+            logging.debug(f"next_composite_trip = {next_composite_trip}")
             if next_composite_trip is not None:
+                logging.debug("Updating next composite trip ...")
                 next_composite_trip["data"]["start_confirmed_place"] = confirmed_obj
                 estbt.BuiltinTimeSeries.update(ecwe.Entry(next_composite_trip))
             else:
