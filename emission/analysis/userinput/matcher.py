@@ -307,7 +307,6 @@ def update_confirmed_and_composite(ts, confirmed_obj):
             **base_qeuery,
             "data.end_confirmed_place._id": confirmed_obj["_id"]
         })
-        logging.debug(f"previous_composite_trip = {previous_composite_trip}")
         if previous_composite_trip is not None:
             logging.debug("Updating previous composite trip ...")
             previous_composite_trip["data"]["end_confirmed_place"] = confirmed_obj
@@ -322,7 +321,6 @@ def update_confirmed_and_composite(ts, confirmed_obj):
                 **base_qeuery,
                 "data.start_confirmed_place._id": confirmed_obj["_id"]
             })
-            logging.debug(f"next_composite_trip = {next_composite_trip}")
             if next_composite_trip is not None:
                 logging.debug("Updating next composite trip ...")
                 next_composite_trip["data"]["start_confirmed_place"] = confirmed_obj
